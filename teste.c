@@ -7,6 +7,8 @@
 /* Revision date:    16jun2016                                       */
 /* ***************************************************************** */
 
+//uuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuu
+
 #include "es670_peripheral_board.h"
 
 #define ADC0_SC1A_COCO (ADC0_SC1A >> 7)
