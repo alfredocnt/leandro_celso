@@ -106,41 +106,23 @@ void main_cyclicExecuteIsr(void)
 int main(void)
 {
 	long int liSpeedD, liSpeedE;
-	int i=0;
+	int i=0,iSensorMax[6], iSensorMin[6], iSensorOffstet[6];
+	float fPosition;
 
     /* board initializations */
     main_boardInit();
 
-    /* configure cyclic executive interruption */
+   	infrared_calibration(iSensorMax,iSensorMin,iSensorOffstet);
 
+    while(i<100)
+    {
+    	fPosition = infradred_getPosition(iSensorMax,iSensorMin,iSensorOffstet);
+    	i++;
+    }
 
-    /* configure cyclic executive interruption */
-//    tc_installLptmr0(CYCLIC_EXECUTIVE_PERIOD, main_cyclicExecuteIsr);
-
-
-
-
-    //timer_changeHeaterPwm(10);
-    //timer_setHeater();
-    //cooler_set();
-    /* cooperative cyclic executive main loop */
-
-//	for(i=0; i<10; i++){
-//	util_genDelay10ms();
-//	util_genDelay10ms();
-//	util_genDelay10ms();
-//	util_genDelay10ms();
-//	util_genDelay10ms();
-//	util_genDelay10ms();
-//	util_genDelay10ms();
-//	util_genDelay10ms();
-//	}
-	//autoteste_clearAutoteste();
-//
-    if(infrared_test()==0 )
+    if(motor_test()==0 || infrared_test()==0 )
 		autoteste_setAutoteste();
-	if(motor_test()==0 )
-		autoteste_setAutoteste();
+
 
     tc_installLptmr0(CYCLIC_EXECUTIVE_PERIOD, main_cyclicExecuteIsr);
     while(1U){

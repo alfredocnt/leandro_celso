@@ -104,20 +104,27 @@ void infrared_set(int iSensor)
 int infrared_getON(int iSensor)
 {
 	infrared_set(iSensor);
-	int iValue;
-	for(int i=0; i<10000;i++)
-		iValue = adc_getConvertionValue(iSensor);
+	int iValue=0;
+	for(int i=0; i<30;i++)
+	{
+		if(i>9)
+		iValue =iValue+ adc_getConvertionValue(iSensor);
+	}
+
 	infrared_clear(iSensor);
-	return iValue;
+	return iValue/20;
 }
 
 int infrared_getOFF(int iSensor)
 {
 	infrared_clear(iSensor);
-	int iValue;
-	for(int i=0; i<100;i++)
-		iValue = adc_getConvertionValue(iSensor);
-	return adc_getConvertionValue(iSensor);
+	int iValue=0;
+	for(int i=0; i<30;i++)
+	{
+		if(i>9)
+		iValue =iValue+ adc_getConvertionValue(iSensor);
+	}
+	return iValue/20;
 }
 
 int infrared_test()
@@ -143,9 +150,118 @@ int infrared_test()
 	value3_OFF = infrared_getOFF(3);
 	value3_ON = infrared_getON(3);
 
-	if((value1_OFF*5>value1_OFF)||(value2_OFF*5>value2_OFF)||(value3_OFF*5>value3_OFF)||(value4_OFF*5>value4_OFF)||(value5_OFF*5>value5_OFF)||(value6_OFF*5>value6_OFF))
+	if((value1_OFF*2>value1_ON)||(value2_OFF*2>value2_ON)||(value3_OFF*2>value3_ON)||(value4_OFF*2>value4_ON)||(value5_OFF*2>value5_ON)||(value6_OFF*2>value6_ON))
 		return 0;
-		return 1 ;
+	return 1 ;
 }
 
+void infrared_calibration(int *iSensorMax, int *iSensorMin, int *iSensorOffstet)
+{
+	int i=1, j=0, k;
+	while(i<=6){
+		iSensorOffstet[i-1]=infrared_getOFF(i);
+		i++;
+	}
 
+	i=1;
+	for(i=1; i<=6; i++){
+		k=infrared_getON(i);
+		iSensorMax[i-1] = k;
+		iSensorMin[i-1] = k;
+	}
+
+	while(j<10000){
+		for(i=1; i<=6; i++){
+			k=infrared_getON(i);
+			if(k>iSensorMax[i-1])
+				iSensorMax[i-1]=k;
+			if(k<iSensorMin[i-1])
+				iSensorMin[i-1]=k;
+		}
+		j++;
+	}
+	return;
+}
+
+float infradred_doSpline(float t, float *fMeasure, int iSensorPosition)
+{
+	float p0, p1, p2, p3;
+	switch (iSensorPosition)
+	{
+	    case 1:
+	    	p0 = fMeasure[0];
+	    	p1 = fMeasure[0];
+	    	p2 = fMeasure[1];
+	    	p3 = fMeasure[2];
+	    	break;
+	    case 2:
+	    	p0 = fMeasure[0];
+	    	p1 = fMeasure[1];
+	    	p2 = fMeasure[2];
+	    	p3 = fMeasure[3];
+	    	break;
+	    case 3:
+	    	p0 = fMeasure[1];
+	    	p1 = fMeasure[2];
+	    	p2 = fMeasure[3];
+	    	p3 = fMeasure[4];
+	    	break;
+	    case 4:
+	    	p0 = fMeasure[2];
+	    	p1 = fMeasure[3];
+	    	p2 = fMeasure[4];
+	    	p3 = fMeasure[5];
+	    	break;
+	    case 5:
+	    	p0 = fMeasure[3];
+	    	p1 = fMeasure[4];
+	    	p2 = fMeasure[5];
+	    	p3 = fMeasure[5];
+	    	break;
+	}
+
+	return 0.5f * ((2 * p1) +
+		                      (p2 - p0) * t +
+		                      (2*p0 - 5*p1 + 4*p2 - p3) * t * t +
+		                      (3*p1 -p0 - 3 * p2 + p3) * t * t * t);
+}
+
+float infradred_getPosition(int *iSensorMax, int *iSensorMin, int *iSensorOffstet)
+{
+	char linefound=0;
+	float fMeasure[6], t, t2, fsignal1, fsignal2=100;
+	int i=1, iSensorPosition, min=1, iIntervalos=2;
+	while(i<=6){
+		fMeasure[i-1]=(float) (infrared_getON(i) - iSensorOffstet[i-1])/(iSensorMax[i-1]-iSensorMin[i-1]);
+		if((i!=1)&&(fMeasure[i-1]<fMeasure[min-1]))
+			min=i;
+		if(fMeasure[i-1]<0.7)
+			linefound=1;
+		i++;
+
+	}
+
+	if(min==1||min==6) //mínimo nos cantos
+		iIntervalos=1;
+	if(linefound==1)
+	{
+		for(; iIntervalos>0; iIntervalos--) //numero de intervalos onde se procurará o mínimo (1 ou 2)
+		{
+			t=0;
+			while(t<=1)
+			{
+				fsignal1 = infradred_doSpline( t, fMeasure, min);
+				if(fsignal1<fsignal2){
+					fsignal2=fsignal1;
+					t2 = t;
+					iSensorPosition = min;
+				}
+				t=t+0.05;
+			}
+			min--;
+		}
+		return (iSensorPosition-1)+t2;
+	}
+	else
+		return -1;
+}

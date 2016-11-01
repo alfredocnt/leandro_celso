@@ -10,7 +10,11 @@
 
 
 void infrared_init(void);
-void infrared_clear(int iSensor);
-void infrared_set(int iSensor);
-int infrared_getON(int iSensor);
-int infrared_getOFF(int iSensor);
+void infrared_clear(int );
+void infrared_set(int );
+int infrared_getON(int );
+int infrared_getOFF(int );
+int infrared_test(void);
+void infrared_calibration(int* , int* , int* );
+float infradred_getPosition(int *, int *, int *);
+float infradred_doSpline(float, float *, int);
